@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./h2data:/data
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:h2:file:/data/demo
