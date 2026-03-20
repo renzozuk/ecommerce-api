@@ -1,18 +1,18 @@
 package com.renzozukeram.ecommerce.model.entities
 
-import jakarta.persistence.Column
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
+import jakarta.persistence.*
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
+import java.util.UUID
+import kotlin.collections.mutableListOf
 
 
 @Table(name = "customers")
 data class Customer (
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    val id: String? = null,
+    val id: UUID? = null,
 
     @Column(nullable = false)
     var name: String,
@@ -21,12 +21,18 @@ data class Customer (
     var email: String,
 
     @Column(name = "phone_number")
-    var phoneNumber: String,
+    var phoneNumber: String?,
+
+    @Embedded
+    var address: Address? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at")
-    var updatedAt: LocalDateTime? = null
+    var updatedAt: LocalDateTime? = null,
+
+    @OneToMany(mappedBy = "customer", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
+    var orders: MutableList<Order> = mutableListOf()
 
 )
