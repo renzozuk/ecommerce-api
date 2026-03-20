@@ -14,7 +14,7 @@ data class CustomerRequest (
     @field:NotBlank(message = "Email is required")
     val email: String,
 
-    @field:Pattern(regexp = "^\\+[1-9]\\d{1,14}\$", message = "Invalid phone number")
+    @field:Pattern(regexp = "^\\+?[1-9]\\d{0,2}[ \\-(\\d{1,4}]?[\\d \\-()]{5,15}\$", message = "Invalid phone number")
     val phoneNumber: String? = null,
 
     @field:Valid
