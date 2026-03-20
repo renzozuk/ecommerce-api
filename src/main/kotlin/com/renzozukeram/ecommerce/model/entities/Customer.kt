@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 @Table(name = "customers")
 data class Customer (
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     val id: String? = null,
 
     @Column(nullable = false)

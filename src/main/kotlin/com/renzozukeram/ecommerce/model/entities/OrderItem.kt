@@ -2,12 +2,13 @@ package com.renzozukeram.ecommerce.model.entities
 
 import jakarta.persistence.*
 import java.math.BigDecimal
+import java.util.UUID
 
 @Table(name = "order_items")
 data class OrderItem (
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    @GeneratedValue(strategy = GenerationType.UUID)
+    val id: UUID? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
