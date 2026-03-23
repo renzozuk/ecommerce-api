@@ -1,65 +1,48 @@
 package com.renzozukeram.ecommerce.mappers
 
-import com.renzozukeram.ecommerce.model.dto.request.AddressRequest
-import com.renzozukeram.ecommerce.model.dto.request.CustomerRequest
-import com.renzozukeram.ecommerce.model.dto.response.AddressResponse
-import com.renzozukeram.ecommerce.model.dto.response.CustomerResponse
-import com.renzozukeram.ecommerce.model.entities.Address
+import com.renzozukeram.ecommerce.model.dto.CustomerRequest
+import com.renzozukeram.ecommerce.model.dto.CustomerResponse
+import com.renzozukeram.ecommerce.model.dto.CustomerUpdateRequest
+import com.renzozukeram.ecommerce.model.dto.CustomerWithOrdersResponse
 import com.renzozukeram.ecommerce.model.entities.Customer
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
 
 @Component
-class CustomerMapper {
+class CustomerMapper(private val orderMapper: OrderMapper) {
 
-    fun toEntity(request: CustomerRequest): Customer {
-        return Customer(
+    fun toEntity(request: CustomerRequest): Customer =
+        Customer(
             name = request.name,
             email = request.email,
-            phoneNumber = request.phoneNumber,
-            address = request.address?.let { toAddressEntity(it) }
+            phoneNumber = request.phoneNumber
         )
-    }
 
-    fun toResponse(customer: Customer, includeOrdersCount: Boolean = false): CustomerResponse {
-        return CustomerResponse(
+    fun toResponse(customer: Customer): CustomerResponse =
+        CustomerResponse(
             id = customer.id!!,
             name = customer.name,
             email = customer.email,
             phoneNumber = customer.phoneNumber,
-            address = customer.address?.let { toAddressResponse(it) },
             createdAt = customer.createdAt,
-            ordersCount = if (includeOrdersCount) customer.orders.size else null
+            updatedAt = customer.updatedAt
         )
-    }
 
-    fun toAddressEntity(request: AddressRequest): Address {
-        return Address(
-            street = request.street,
-            city = request.city,
-            state = request.state,
-            zipCode = request.zipCode,
-            complement = request.complement
+    fun toResponseWithOrders(customer: Customer): CustomerWithOrdersResponse =
+        CustomerWithOrdersResponse(
+            id = customer.id!!,
+            name = customer.name,
+            email = customer.email,
+            phoneNumber = customer.phoneNumber,
+            createdAt = customer.createdAt,
+            updatedAt = customer.updatedAt,
+            orders = customer.orders.map { orderMapper.toSummaryResponse(it) }
         )
-    }
 
-    fun toAddressResponse(address: Address): AddressResponse {
-        return AddressResponse(
-            street = address.street,
-            city = address.city,
-            state = address.state,
-            zipCode = address.zipCode,
-            complement = address.complement
-        )
-    }
-
-    fun updateEntity(customer: Customer, request: CustomerRequest) {
+    fun updateEntity(customer: Customer, request: CustomerUpdateRequest): Customer {
         customer.name = request.name
         customer.email = request.email
         customer.phoneNumber = request.phoneNumber
-        request.address?.let {
-            customer.address = toAddressEntity(it)
-        }
-        customer.updatedAt = LocalDateTime.now()
+        customer.updatedAt = java.time.LocalDateTime.now()
+        return customer
     }
 }
