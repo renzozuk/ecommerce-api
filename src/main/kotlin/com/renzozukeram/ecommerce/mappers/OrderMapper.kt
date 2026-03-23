@@ -1,65 +1,58 @@
 package com.renzozukeram.ecommerce.mappers
 
-import com.renzozukeram.ecommerce.model.dto.request.AddressRequest
-import com.renzozukeram.ecommerce.model.dto.request.CustomerRequest
-import com.renzozukeram.ecommerce.model.dto.response.AddressResponse
-import com.renzozukeram.ecommerce.model.dto.response.CustomerResponse
-import com.renzozukeram.ecommerce.model.entities.Address
+import com.renzozukeram.ecommerce.model.dto.request.OrderRequest
+import com.renzozukeram.ecommerce.model.dto.response.CustomerSummaryResponse
+import com.renzozukeram.ecommerce.model.dto.response.OrderItemResponse
+import com.renzozukeram.ecommerce.model.dto.response.OrderResponse
 import com.renzozukeram.ecommerce.model.entities.Customer
+import com.renzozukeram.ecommerce.model.entities.Order
+import com.renzozukeram.ecommerce.model.entities.OrderItem
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
+import java.math.BigDecimal
 
 @Component
 class OrderMapper {
 
-    fun toEntity(request: CustomerRequest): Customer {
-        return Customer(
-            name = request.name,
-            email = request.email,
-            phoneNumber = request.phoneNumber,
-            address = request.address?.let { toAddressEntity(it) }
+    fun toEntity(request: OrderRequest, customer: Customer): Order {
+        val order = Order(customer = customer)
+        order.items = request.items.map { req ->
+            OrderItem(
+                order = order,
+                productName = req.productName,
+                quantity = req.quantity,
+                unitPrice = req.unitPrice,
+                totalPrice = req.unitPrice.multiply(BigDecimal.valueOf(req.quantity.toLong()))
+            )
+        }.toMutableList()
+        order.totalAmount = order.items.sumOf { it.totalPrice }
+        return order
+    }
+
+    fun toResponse(order: Order): OrderResponse {
+        return OrderResponse(
+            id = order.id!!,
+            orderDate = order.orderDate,
+            status = order.status,
+            totalAmount = order.totalAmount,
+            items = order.items.map { toItemResponse(it) },
+            customerSummary = toCustomerSummary(order.customer)
         )
     }
 
-    fun toResponse(customer: Customer, includeOrdersCount: Boolean = false): CustomerResponse {
-        return CustomerResponse(
+    private fun toItemResponse(item: OrderItem): OrderItemResponse {
+        return OrderItemResponse(
+            productName = item.productName,
+            quantity = item.quantity,
+            unitPrice = item.unitPrice,
+            totalPrice = item.totalPrice
+        )
+    }
+
+    private fun toCustomerSummary(customer: Customer): CustomerSummaryResponse {
+        return CustomerSummaryResponse(
             id = customer.id!!,
             name = customer.name,
-            email = customer.email,
-            phoneNumber = customer.phoneNumber,
-            address = customer.address?.let { toAddressResponse(it) },
-            createdAt = customer.createdAt,
-            ordersCount = if (includeOrdersCount) customer.orders.size else null
+            email = customer.email
         )
-    }
-
-    fun toAddressEntity(request: AddressRequest): Address {
-        return Address(
-            street = request.street,
-            city = request.city,
-            state = request.state,
-            zipCode = request.zipCode,
-            complement = request.complement
-        )
-    }
-
-    fun toAddressResponse(address: Address): AddressResponse {
-        return AddressResponse(
-            street = address.street,
-            city = address.city,
-            state = address.state,
-            zipCode = address.zipCode,
-            complement = address.complement
-        )
-    }
-
-    fun updateEntity(customer: Customer, request: CustomerRequest) {
-        customer.name = request.name
-        customer.email = request.email
-        customer.phoneNumber = request.phoneNumber
-        request.address?.let {
-            customer.address = toAddressEntity(it)
-        }
-        customer.updatedAt = LocalDateTime.now()
     }
 }

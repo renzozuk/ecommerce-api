@@ -1,11 +1,12 @@
 package com.seuprojeto.domain.service
 
+import com.renzozukeram.ecommerce.mappers.OrderMapper
+import com.renzozukeram.ecommerce.model.dto.response.OrderResponse
+import com.renzozukeram.ecommerce.model.entities.Customer
 import com.renzozukeram.ecommerce.model.entities.Order
 import com.renzozukeram.ecommerce.model.entities.OrderStatus
 import com.renzozukeram.ecommerce.repositories.OrderRepository
 import com.renzozukeram.ecommerce.services.CustomerService
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -16,11 +17,12 @@ import java.util.*
 @Transactional
 class OrderService(
     private val orderRepository: OrderRepository,
-    private val customerService: CustomerService
+    private val customerService: CustomerService,
+    private val orderMapper: OrderMapper
 ) {
 
-    fun findAll(): Iterable<Order> {
-        return orderRepository.findAll()
+    fun findAll(): Iterable<OrderResponse> {
+        return orderRepository.findAll().map { o -> orderMapper.toResponse(o) }
     }
 
     fun findById(id: UUID): Order {
@@ -30,14 +32,13 @@ class OrderService(
 
     @Transactional
     fun create(order: Order, customerId: UUID): Order {
-        val customer = customerService.findById(customerId)
+        val customerResponse = customerService.findById(customerId)
+        val customer = Customer(customerResponse.id, customerResponse.name, customerResponse.email, customerResponse.phoneNumber, customerResponse.createdAt, customerResponse.updatedAt)
         order.customer = customer
 
         order.totalAmount = order.items.sumOf { it.totalPrice }
 
         val savedOrder = orderRepository.save(order)
-
-        customer.orders.add(savedOrder)
 
         return savedOrder
     }
@@ -50,35 +51,6 @@ class OrderService(
 
         order.status = newStatus
         return orderRepository.save(order)
-    }
-
-    @Transactional
-    fun cancelOrder(id: UUID): Order {
-        val order = findById(id)
-
-        if (order.status == OrderStatus.SHIPPED || order.status == OrderStatus.DELIVERED) {
-            throw RuntimeException("Cannot cancel order that is already shipped or delivered")
-        }
-
-        order.status = OrderStatus.CANCELLED
-        return orderRepository.save(order)
-    }
-
-    fun findOrdersByDateRange(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime,
-        pageable: Pageable
-    ): Page<Order> {
-        return orderRepository.findByOrderDateBetween(startDate, endDate, pageable)
-    }
-
-    fun calculateTotalRevenue(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
-        val orders = orderRepository.findByOrderDateBetweenAndStatus(
-            startDate,
-            endDate,
-            OrderStatus.DELIVERED
-        )
-        return orders.sumOf { it.totalAmount }
     }
 
     private fun validateStatusTransition(current: OrderStatus, newStatus: OrderStatus) {

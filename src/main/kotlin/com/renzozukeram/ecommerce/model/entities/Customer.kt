@@ -23,9 +23,6 @@ data class Customer (
     @Column(name = "phone_number")
     var phoneNumber: String?,
 
-    @Embedded
-    var address: Address? = null,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 

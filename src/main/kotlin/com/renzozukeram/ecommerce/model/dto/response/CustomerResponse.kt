@@ -8,8 +8,8 @@ data class CustomerResponse (
     val name: String,
     val email: String,
     val phoneNumber: String?,
-    val address: AddressResponse?,
     val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
     val ordersCount: Int? = null,
     val links: Map<String, String>? = null
 )
