@@ -1,90 +1,68 @@
 package com.renzozukeram.ecommerce.services
 
+import com.renzozukeram.ecommerce.exceptions.DuplicateResourceException
+import com.renzozukeram.ecommerce.exceptions.ResourceNotFoundException
 import com.renzozukeram.ecommerce.mappers.CustomerMapper
-import com.renzozukeram.ecommerce.mappers.OrderMapper
-import com.renzozukeram.ecommerce.model.dto.request.CustomerRequest
-import com.renzozukeram.ecommerce.model.dto.response.CustomerResponse
-import com.renzozukeram.ecommerce.model.entities.Order
+import com.renzozukeram.ecommerce.model.dto.CustomerRequest
+import com.renzozukeram.ecommerce.model.dto.CustomerResponse
+import com.renzozukeram.ecommerce.model.dto.CustomerUpdateRequest
+import com.renzozukeram.ecommerce.model.dto.CustomerWithOrdersResponse
 import com.renzozukeram.ecommerce.repositories.CustomerRepository
-import com.renzozukeram.ecommerce.repositories.OrderRepository
-import jakarta.transaction.Transactional
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import java.util.*
+import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 class CustomerService(
     private val customerRepository: CustomerRepository,
-    private val orderRepository: OrderRepository,
-    private val customerMapper: CustomerMapper,
-    private val orderMapper: OrderMapper
+    private val customerMapper: CustomerMapper
 ) {
 
-    fun findAll(): Iterable<CustomerResponse> {
-        return customerRepository.findAll().map { c -> customerMapper.toResponse(c) }
-    }
+    fun findAll(pageable: Pageable): Page<CustomerResponse> =
+        customerRepository.findAll(pageable).map { customerMapper.toResponse(it) }
 
     fun findById(id: UUID): CustomerResponse {
-        return customerMapper.toResponse(customerRepository.findById(id)
-            .orElseThrow { RuntimeException("Customer not found with id: $id") })
+        val customer = customerRepository.findById(id)
+            .orElseThrow { ResourceNotFoundException("Customer", id) }
+        return customerMapper.toResponse(customer)
     }
 
-    fun findByEmail(email: String): CustomerResponse? {
-        return customerRepository.findByEmail(email)?.let { customerMapper.toResponse(it) }
-    }
-
-    @Transactional
-    fun create(customerRequest: CustomerRequest): CustomerResponse {
-        validateEmail(customerRequest.email)
-        return customerMapper.toResponse(customerRepository.save(customerMapper.toEntity(customerRequest)))
+    fun findByIdWithOrders(id: UUID): CustomerWithOrdersResponse {
+        val customer = customerRepository.findByIdWithOrders(id)
+            .orElseThrow { ResourceNotFoundException("Customer", id) }
+        return customerMapper.toResponseWithOrders(customer)
     }
 
     @Transactional
-    fun update(id: UUID, customerRequest: CustomerRequest): CustomerResponse {
-        val existingCustomer = customerRepository.findById(id).orElseThrow { RuntimeException("Customer not found with id: $id") }
+    fun create(request: CustomerRequest): CustomerResponse {
+        if (customerRepository.existsByEmail(request.email)) {
+            throw DuplicateResourceException("Customer with email '${request.email}' already exists")
+        }
+        val customer = customerMapper.toEntity(request)
+        return customerMapper.toResponse(customerRepository.save(customer))
+    }
 
-        existingCustomer.name = customerRequest.name
-        existingCustomer.phoneNumber = customerRequest.phoneNumber
-        customerRequest.address?.let {
-            existingCustomer.address = orderMapper.toAddressEntity(it)
+    @Transactional
+    fun update(id: UUID, request: CustomerUpdateRequest): CustomerResponse {
+        val customer = customerRepository.findById(id)
+            .orElseThrow { ResourceNotFoundException("Customer", id) }
+
+        if (customerRepository.existsByEmailAndIdNot(request.email, id)) {
+            throw DuplicateResourceException("Customer with email '${request.email}' already exists")
         }
 
-        if (existingCustomer.email != customerRequest.email) {
-            validateEmail(customerRequest.email)
-            existingCustomer.email = customerRequest.email
-        }
-
-        existingCustomer.updatedAt = java.time.LocalDateTime.now()
-
-        return customerMapper.toResponse(customerRepository.save(existingCustomer))
+        customerMapper.updateEntity(customer, request)
+        return customerMapper.toResponse(customerRepository.save(customer))
     }
 
     @Transactional
     fun delete(id: UUID) {
-        val customer = findById(id)
-
-        if (customer.ordersCount != 0) {
-            throw RuntimeException("Cannot delete customer with existing orders")
+        if (!customerRepository.existsById(id)) {
+            throw ResourceNotFoundException("Customer", id)
         }
-
         customerRepository.deleteById(id)
     }
-
-    fun findOrdersByCustomerId(customerId: UUID): List<Order> {
-        if (!customerRepository.existsById(customerId)) {
-            throw RuntimeException("Customer not found with id: $customerId")
-        }
-
-        return orderRepository.findByCustomerId(customerId)
-    }
-
-    private fun validateEmail(email: String) {
-        if (customerRepository.existsByEmail(email)) {
-            throw RuntimeException("Email already exists: $email")
-        }
-    }
-
-//    fun existsById(id: UUID): Boolean {
-//        return customerRepository.existsById(id)
-//    }
 }
