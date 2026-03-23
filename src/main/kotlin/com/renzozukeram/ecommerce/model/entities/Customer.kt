@@ -31,5 +31,4 @@ data class Customer (
 
     @OneToMany(mappedBy = "customer", cascade = [CascadeType.ALL], fetch = FetchType.LAZY, orphanRemoval = true)
     var orders: MutableList<Order> = mutableListOf()
-
 )
