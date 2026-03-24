@@ -1,15 +1,14 @@
 package com.renzozukeram.ecommerce.model.entities
 
 import jakarta.persistence.*
-import org.springframework.data.annotation.Id
-import org.springframework.data.relational.core.mapping.Table
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.collections.mutableListOf
 
 
+@Entity
 @Table(name = "customers")
-data class Customer (
+open class Customer (
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,

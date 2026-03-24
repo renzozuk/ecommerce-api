@@ -4,8 +4,9 @@ import jakarta.persistence.*
 import java.math.BigDecimal
 import java.util.UUID
 
+@Entity
 @Table(name = "order_items")
-data class OrderItem (
+open class OrderItem (
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,
