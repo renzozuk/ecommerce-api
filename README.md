@@ -25,11 +25,6 @@ src/main/kotlin/com/renzozukeram/ecommerce/
 │   ├── CustomerController.kt
 │   ├── OrderController.kt
 │   └── OrderItemController.kt
-├── entities/
-│   ├── Customer.kt
-│   ├── Order.kt
-│   ├── OrderItem.kt
-│   └── OrderStatus.kt
 ├── exceptions/
 │   ├── Exceptions.kt
 │   ├── GlobalExceptionHandler.kt
